@@ -1,17 +1,19 @@
 import {useState} from "react";
 
-export const Uploader = ({callback}: { callback: (f: File) => any }) => {
+type UploaderProps = {callback: (f: File) => any, disabled?: boolean};
+
+export const Uploader = (prop: UploaderProps) => {
     const [file, setFile] = useState<File | null>(null);
     return (<div>
-        <input type="file" accept="image/*" onChange={event => {
+        <input disabled={prop.disabled} type="file" accept="image/*" onChange={event => {
             if (event.target.files === null) {
                 return;
             }
             setFile(event.target.files.item(0))
         }}/>
-        <button onClick={() => {
+        <button disabled={prop.disabled} onClick={() => {
             if (file !== null) {
-                callback(file)
+                prop.callback(file)
             }
         }}>Ok
         </button>

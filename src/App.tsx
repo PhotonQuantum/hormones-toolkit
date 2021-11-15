@@ -1,15 +1,15 @@
 import {Uploader} from "./components/uploader";
-import {ReactElement, useEffect, useReducer, useState} from "react";
+import {ReactElement, useEffect, useState} from "react";
 import {createWorker, Worker} from "tesseract.js";
 import {loadImage, run_preprocess} from "./utils/cv";
 import {parseLine} from "./utils/parser";
-import cv from "opencv-ts";
 
 export const App = () => {
     const [output, setOutput] = useState<ReactElement[]>([]);
     const [progress, setProgress] = useState<string>("");
+    const [loading, setLoading] = useState(true);
     const [worker, setWorker] = useState<Worker | null>(null);
-    const [debug, setDebug] = useState<boolean>(false);
+    const [debug, setDebug] = useState(false);
     const updateLog = (obj: any) => {
         if (obj.status === "recognizing text") {
             setProgress((obj.progress * 100).toFixed(2).toString() + "%")
@@ -31,6 +31,7 @@ export const App = () => {
                 tessedit_char_whitelist: '睾酮孕雌二醇促卵泡刺激生成素黄体垂泌乳1234567890./<>pnmolgIUdL'
             })
             setWorker(newWorker);
+            setLoading(false);
         })();
         // eslint-disable-next-line
     }, [])
@@ -63,14 +64,16 @@ export const App = () => {
                 }
             });
             setOutput(output);
+            setLoading(false);
         })();
     };
     return (
         <div>
             <h1>Hello world!</h1>
-            <Uploader callback={recognize}/>
+            <p hidden={!loading}>Loading tesseract...</p>
+            <Uploader disabled={loading} callback={recognize}/>
             <div>
-                <button onClick={_ => setDebug(true)}>Enable Debug</button>
+                <button disabled={loading} onClick={_ => setDebug(true)}>Enable Debug</button>
             </div>
             <div>
                 <h3>Progress</h3>
