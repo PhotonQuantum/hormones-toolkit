@@ -1,4 +1,4 @@
-import {useEffect, useReducer, useState} from "react";
+import {useEffect, useMemo, useReducer, useState} from "react";
 import {createWorker, Worker} from "tesseract.js";
 import {imageDataFromFile} from "./utils/cv";
 import {HormoneEntry, parseLine} from "./utils/parser";
@@ -7,7 +7,6 @@ import {
     Alert,
     AppBar,
     Box,
-    Button,
     Container,
     createTheme,
     CssBaseline,
@@ -22,7 +21,8 @@ import {
     TableRow,
     ThemeProvider,
     Toolbar,
-    Typography
+    Typography,
+    useMediaQuery
 } from "@mui/material";
 import {CollapseFade} from "./components/CollapseFade";
 import '@fontsource/roboto/300.css';
@@ -77,7 +77,6 @@ export const App = () => {
     const [progress, setProgress] = useState<number>(0);
     const [ready, dispatchReady] = useReducer(readyReducer, initialReadyState);
     const [tesseract, setTesseract] = useState<Worker | null>(null);
-    const [debug, setDebug] = useState(false);
     const [file, setFile] = useState<File | null>(null);
 
     const updateLog = (obj: any) => {
@@ -142,7 +141,17 @@ export const App = () => {
         })();
     }, [file, tesseract]);
 
-    const theme = createTheme();
+    const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
+    const theme = useMemo(
+        () =>
+            createTheme({
+                palette: {
+                    mode: prefersDarkMode ? 'dark' : 'light',
+                },
+            }),
+        [prefersDarkMode],
+    );
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline/>
