@@ -117,7 +117,6 @@ export class HormoneEntry implements Display {
 // NOTE and what's wrong if I DO NOT return a variant in a enum??
 // @ts-ignore
 const parseModifier: Parser<UnitModifier> = input => {
-    console.log("parseModifier", input);
     if (input[0] === "m" || input[0] === "n" || input[0] === "p" || input[0] === "d") {
         return new Ok(new Output(input.substring(1), input[0]));
     }
@@ -125,7 +124,6 @@ const parseModifier: Parser<UnitModifier> = input => {
 };
 
 const parseMatterUnit: Parser<MatterUnit> = input => {
-    console.log("parseMatterUnit", input);
     for (const [ty, candidates] of Array.from(MatterUnitProj)) {
         for (const candidate of candidates) {
             if (input.startsWith(candidate)) {
@@ -137,7 +135,6 @@ const parseMatterUnit: Parser<MatterUnit> = input => {
 }
 
 const parseVolumeUnit: Parser<VolumeUnit> = input => {
-    console.log("parseVolumeUnit", input);
     if (input[0] === "I" || input[0] === "l" || input[0] === "L") {
         return new Ok(new Output(input.substring(1), "L"));
     }

@@ -7,7 +7,8 @@
     "opencv-ts": "^1.2.21",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "tesseract.js": "^2.1.5"
+    "tesseract.js": "^2.1.5",
+    "uuid": "^8.3.2"
   },
   "scripts": {
     "start": "parcel src/index.html",
@@ -37,6 +38,7 @@
     "@types/js-levenshtein": "^1.1.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
+    "@types/uuid": "^8.3.1",
     "@typescript-eslint/eslint-plugin": "^4.5.0",
     "@typescript-eslint/parser": "^4.5.0",
     "babel-eslint": "^10.1.0",

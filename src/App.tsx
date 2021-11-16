@@ -1,14 +1,15 @@
 import {Uploader} from "./components/uploader";
 import {ReactElement, useEffect, useState} from "react";
 import {createWorker, Worker} from "tesseract.js";
-import {loadImage, run_preprocess} from "./utils/cv";
+import {imageDataFromFile} from "./utils/cv";
 import {parseLine} from "./utils/parser";
+import {preprocessor} from "./services/cv";
 
 export const App = () => {
     const [output, setOutput] = useState<ReactElement[]>([]);
     const [progress, setProgress] = useState<string>("");
     const [loading, setLoading] = useState(true);
-    const [worker, setWorker] = useState<Worker | null>(null);
+    const [tesseract, setTesseract] = useState<Worker | null>(null);
     const [debug, setDebug] = useState(false);
     const updateLog = (obj: any) => {
         if (obj.status === "recognizing text") {
@@ -17,7 +18,9 @@ export const App = () => {
     };
     useEffect(() => {
         (async () => {
-            if (worker !== null) {
+            await preprocessor.load();
+
+            if (tesseract !== null) {
                 return;
             }
             const newWorker = createWorker({
@@ -30,28 +33,30 @@ export const App = () => {
             await newWorker.setParameters({
                 tessedit_char_whitelist: '睾酮孕雌二醇促卵泡刺激生成素黄体垂泌乳1234567890./<>pnmolgIUdL'
             })
-            setWorker(newWorker);
+            setTesseract(newWorker);
             setLoading(false);
         })();
         // eslint-disable-next-line
     }, [])
     const recognize = (f: File) => {
         (async () => {
-            if (worker === null) {
+            if (tesseract === null) {
                 console.log("worker not loaded, bail out");
                 return;
             }
-            // @ts-ignore
-            if (window.cv === null) {
-                console.log("cv not loaded, bail out");
+
+            const image = await imageDataFromFile(f);
+            if (image === undefined) {
+                return;
             }
 
-            const inputImg = document.getElementById("inputImg") as HTMLImageElement;
+            const preprocessed = await preprocessor.run(image);
             const outputCanvas = document.getElementById("outputCanvas") as HTMLCanvasElement;
+            outputCanvas.height = preprocessed.height;
+            outputCanvas.width = preprocessed.width;
+            outputCanvas.getContext("2d")?.putImageData(preprocessed, 0, 0);
 
-            await loadImage(f, inputImg);
-            run_preprocess(inputImg, outputCanvas);
-            const {data} = await worker.recognize(outputCanvas);
+            const {data} = await tesseract.recognize(outputCanvas);
 
             const output = data.lines.flatMap((x) => {
                 let res = parseLine(x.text);
