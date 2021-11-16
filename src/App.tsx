@@ -1,9 +1,35 @@
-import {Uploader} from "./components/uploader";
-import {ReactElement, useEffect, useReducer, useState} from "react";
+import {useEffect, useReducer, useState} from "react";
 import {createWorker, Worker} from "tesseract.js";
 import {imageDataFromFile} from "./utils/cv";
-import {parseLine} from "./utils/parser";
+import {HormoneEntry, parseLine} from "./utils/parser";
 import {preprocessor} from "./services/cv";
+import {
+    Alert,
+    AppBar,
+    Box,
+    Button,
+    Container,
+    createTheme,
+    CssBaseline,
+    LinearProgress,
+    Paper,
+    Stack,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    ThemeProvider,
+    Toolbar,
+    Typography
+} from "@mui/material";
+import {CollapseFade} from "./components/CollapseFade";
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+import {Uploader} from "./components/Uploader";
 
 type ReadyState = {
     "opencv": boolean,
@@ -47,45 +73,50 @@ const createTesseractWorker = async (logger: ((arg: any) => void)) => {
 
 export const App = () => {
     const initialReadyState: ReadyState = {"opencv": false, "tesseract": false};
-    const [output, setOutput] = useState<ReactElement[]>([]);
-    const [progress, setProgress] = useState<string>("");
+    const [output, setOutput] = useState<HormoneEntry[]>([]);
+    const [progress, setProgress] = useState<number>(0);
     const [ready, dispatchReady] = useReducer(readyReducer, initialReadyState);
     const [tesseract, setTesseract] = useState<Worker | null>(null);
     const [debug, setDebug] = useState(false);
+    const [file, setFile] = useState<File | null>(null);
 
     const updateLog = (obj: any) => {
         if (obj.status === "recognizing text") {
-            setProgress((obj.progress * 100).toFixed(2).toString() + "%")
+            setProgress(obj.progress * 100)
         }
     };
 
     useEffect(() => {
         (async () => {
             if (tesseract !== null) {
+                dispatchReady({"type": "tesseract"});
                 return;
             }
             const worker = await createTesseractWorker(updateLog);
             setTesseract(worker);
+            dispatchReady({"type": "tesseract"});
         })();
-        dispatchReady({"type": "tesseract"});
         // eslint-disable-next-line
     }, []);
 
     useEffect(() => {
         (async () => {
             await preprocessor.load();
+            dispatchReady({"type": "opencv"});
         })()
-        dispatchReady({"type": "opencv"});
     }, []);
 
-    const recognize = (f: File) => {
+    useEffect(() => {
         (async () => {
+            if (file === null) {
+                return;
+            }
             if (tesseract === null) {
                 console.log("worker not loaded, bail out");
                 return;
             }
 
-            const image = await imageDataFromFile(f);
+            const image = await imageDataFromFile(file);
             if (image === undefined) {
                 return;
             }
@@ -101,8 +132,7 @@ export const App = () => {
             const output = data.lines.flatMap((x) => {
                 let res = parseLine(x.text);
                 if (res.isOk()) {
-                    // @ts-ignore
-                    return [<li key={res.unwrap().name}>{res.unwrap().display()}</li>];
+                    return [res.unwrap()];
                 } else {
                     console.log("boom", x.text);
                     return [];
@@ -110,37 +140,58 @@ export const App = () => {
             });
             setOutput(output);
         })();
-    };
+    }, [file, tesseract]);
+
+    const theme = createTheme();
     return (
-        <div>
-            <h1>Hello world!</h1>
-            <p hidden={ready.opencv}>Loading opencv...</p>
-            <p hidden={ready.tesseract}>Loading tesseract...</p>
-            <Uploader disabled={!(ready.opencv && ready.tesseract)} callback={recognize}/>
-            <div>
-                <button
-                    disabled={!(ready.opencv && ready.tesseract)}
-                    onClick={_ => setDebug(true)}
-                >
-                    Enable Debug
-                </button>
-            </div>
-            <div>
-                <h3>Progress</h3>
-                <p>{progress}</p>
-            </div>
-            <div>
-                <h3>Output</h3>
-                <ul>
-                    {output}
-                </ul>
-            </div>
-            <div hidden={!debug}>
-                <h3>Source</h3>
-                <img id="inputImg" src="#" alt="input file"/>
-                <h3>Preprocessed</h3>
-                <canvas id="outputCanvas"/>
-            </div>
-        </div>
+        <ThemeProvider theme={theme}>
+            <CssBaseline/>
+            <AppBar position="relative">
+                <Toolbar>
+                    <Typography variant="h6">Hormones Toolkit</Typography>
+                </Toolbar>
+            </AppBar>
+            <Box sx={{mt: 2, mb: 2}}>
+                <Container maxWidth="md">
+                    <CollapseFade in={!(ready.opencv)}>
+                        <Alert severity="info" sx={{mb: 2}}>Loading opencv...</Alert>
+                    </CollapseFade>
+                    <CollapseFade in={!(ready.tesseract)}>
+                        <Alert severity="info" sx={{mb: 2}}>Loading tesseract...</Alert>
+                    </CollapseFade>
+                    <Stack alignItems="center" justifyContent="center">
+                        <Uploader disabled={!(ready.opencv && ready.tesseract)} onChange={setFile} sx={{mb: 2}}/>
+                        <CollapseFade in={progress > 0 && progress < 100} sx={{width: "100%"}}>
+                            <Paper sx={{mb: 2, padding: 4}}>
+                                <LinearProgress variant="determinate" value={progress}/>
+                            </Paper>
+                        </CollapseFade>
+                        <CollapseFade in={output.length > 0} sx={{width: "100%"}}>
+                            <TableContainer component={Paper}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Substance</TableCell>
+                                            <TableCell align="right">Quantity</TableCell>
+                                            <TableCell align="right">Unit</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {output.map((entry) =>
+                                            <TableRow key={entry.name}>
+                                                <TableCell component="th" scope="row">{entry.name}</TableCell>
+                                                <TableCell align="right">{entry.value.display()}</TableCell>
+                                                <TableCell align="right">{entry.unit.display()}</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </CollapseFade>
+                        <canvas hidden={true} id="outputCanvas"/>
+                    </Stack>
+                </Container>
+            </Box>
+        </ThemeProvider>
     )
 }
