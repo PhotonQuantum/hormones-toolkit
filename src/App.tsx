@@ -1,43 +1,83 @@
 import {Uploader} from "./components/uploader";
-import {ReactElement, useEffect, useState} from "react";
+import {ReactElement, useEffect, useReducer, useState} from "react";
 import {createWorker, Worker} from "tesseract.js";
 import {imageDataFromFile} from "./utils/cv";
 import {parseLine} from "./utils/parser";
 import {preprocessor} from "./services/cv";
 
+type ReadyState = {
+    "opencv": boolean,
+    "tesseract": boolean
+}
+
+type ReadyAction = {
+    "type": "opencv" | "tesseract"
+}
+
+function readyReducer(prevState: ReadyState, action: ReadyAction): ReadyState {
+    switch (action.type) {
+        case "opencv": {
+            return {
+                ...prevState,
+                "opencv": true
+            }
+        }
+        case "tesseract": {
+            return {
+                ...prevState,
+                "tesseract": true
+            }
+        }
+    }
+}
+
+const createTesseractWorker = async (logger: ((arg: any) => void)) => {
+    const worker = createWorker({
+        langPath: "./lang-data",
+        logger: logger
+    });
+    await worker.load();
+    await worker.loadLanguage("chi_sim");
+    await worker.initialize("chi_sim");
+    await worker.setParameters({
+        tessedit_char_whitelist: '睾酮孕雌二醇促卵泡刺激生成素黄体垂泌乳1234567890./<>pnmolgIUdL'
+    })
+    return worker;
+}
+
 export const App = () => {
+    const initialReadyState: ReadyState = {"opencv": false, "tesseract": false};
     const [output, setOutput] = useState<ReactElement[]>([]);
     const [progress, setProgress] = useState<string>("");
-    const [loading, setLoading] = useState(true);
+    const [ready, dispatchReady] = useReducer(readyReducer, initialReadyState);
     const [tesseract, setTesseract] = useState<Worker | null>(null);
     const [debug, setDebug] = useState(false);
+
     const updateLog = (obj: any) => {
         if (obj.status === "recognizing text") {
             setProgress((obj.progress * 100).toFixed(2).toString() + "%")
         }
     };
+
     useEffect(() => {
         (async () => {
-            await preprocessor.load();
-
             if (tesseract !== null) {
                 return;
             }
-            const newWorker = createWorker({
-                langPath: "./lang-data",
-                logger: updateLog
-            });
-            await newWorker.load();
-            await newWorker.loadLanguage("chi_sim");
-            await newWorker.initialize("chi_sim");
-            await newWorker.setParameters({
-                tessedit_char_whitelist: '睾酮孕雌二醇促卵泡刺激生成素黄体垂泌乳1234567890./<>pnmolgIUdL'
-            })
-            setTesseract(newWorker);
-            setLoading(false);
+            const worker = await createTesseractWorker(updateLog);
+            setTesseract(worker);
         })();
+        dispatchReady({"type": "tesseract"});
         // eslint-disable-next-line
-    }, [])
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            await preprocessor.load();
+        })()
+        dispatchReady({"type": "opencv"});
+    }, []);
+
     const recognize = (f: File) => {
         (async () => {
             if (tesseract === null) {
@@ -69,16 +109,21 @@ export const App = () => {
                 }
             });
             setOutput(output);
-            setLoading(false);
         })();
     };
     return (
         <div>
             <h1>Hello world!</h1>
-            <p hidden={!loading}>Loading tesseract...</p>
-            <Uploader disabled={loading} callback={recognize}/>
+            <p hidden={ready.opencv}>Loading opencv...</p>
+            <p hidden={ready.tesseract}>Loading tesseract...</p>
+            <Uploader disabled={!(ready.opencv && ready.tesseract)} callback={recognize}/>
             <div>
-                <button disabled={loading} onClick={_ => setDebug(true)}>Enable Debug</button>
+                <button
+                    disabled={!(ready.opencv && ready.tesseract)}
+                    onClick={_ => setDebug(true)}
+                >
+                    Enable Debug
+                </button>
             </div>
             <div>
                 <h3>Progress</h3>

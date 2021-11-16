@@ -19,7 +19,7 @@ specifiers:
   eslint-plugin-react: ^7.21.5
   eslint-plugin-react-hooks: ^4.2.0
   js-levenshtein: ^1.1.6
-  opencv-ts: ^1.2.21
+  opencv-ts: ^1.2.22
   parcel: ^2.0.1
   parcel-reporter-static-files-copy: ^1.3.0
   react: ^17.0.2
@@ -30,7 +30,7 @@ specifiers:
 
 dependencies:
   js-levenshtein: registry.nlark.com/js-levenshtein/1.1.6
-  opencv-ts: registry.npmmirror.com/opencv-ts/1.2.21
+  opencv-ts: registry.npmmirror.com/opencv-ts/1.2.22
   react: registry.npmmirror.com/react/17.0.2
   react-dom: registry.npmmirror.com/react-dom/17.0.2_react@17.0.2
   tesseract.js: registry.npmmirror.com/tesseract.js/2.1.5
@@ -7323,10 +7323,10 @@ packages:
       is-wsl: registry.nlark.com/is-wsl/2.2.0
     dev: true
 
-  registry.npmmirror.com/opencv-ts/1.2.21:
-    resolution: {integrity: sha512-v6FzvNFVQhXYY50AdTSVK91itGC2Qpk37FbvXuaafgxAp2lXBrm/QbhcIKVAGgu/d/cJNzBFCneJjaFD+UA73g==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/opencv-ts/download/opencv-ts-1.2.21.tgz}
+  registry.npmmirror.com/opencv-ts/1.2.22:
+    resolution: {integrity: sha512-7DfDNF1R2FmEDR85ag/mR8u2uy0Mj6eKXKw1Eul7JkMAB2epylKbRj1vMkb6ymyoSqI5gWzut+Kau3/jGjpH4A==, registry: https://registry.npm.taobao.org/, tarball: https://registry.npmmirror.com/opencv-ts/download/opencv-ts-1.2.22.tgz}
     name: opencv-ts
-    version: 1.2.21
+    version: 1.2.22
     dependencies:
       typescript: registry.npmmirror.com/typescript/4.4.4
     dev: false
