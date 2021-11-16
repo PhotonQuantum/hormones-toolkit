@@ -64,8 +64,7 @@
   },
   "targets": {
     "default": {
-      "distDir": "./output",
-      "scopeHoist": false
+      "distDir": "./output"
     }
   }
 }
