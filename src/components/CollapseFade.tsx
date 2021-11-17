@@ -1,6 +1,6 @@
 import {Collapse, Fade, Theme} from "@mui/material";
 import {SxProps} from "@mui/system";
-import {ReactElement} from "react";
+import {forwardRef, ReactElement} from "react";
 
 interface CollapseFadeProps {
     in: boolean,
@@ -8,12 +8,12 @@ interface CollapseFadeProps {
     sx?: SxProps<Theme>
 }
 
-export const CollapseFade = (props: CollapseFadeProps) => {
+export const CollapseFade = forwardRef((props: CollapseFadeProps, ref) => {
     return (
-        <Collapse in={props.in} sx={props.sx}>
+        <Collapse in={props.in} sx={props.sx} ref={ref}>
             <Fade in={props.in}>
                 {props.children}
             </Fade>
         </Collapse>
     );
-}
+})

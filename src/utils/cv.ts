@@ -1,6 +1,10 @@
 export const loadImage = (f: File, img: HTMLImageElement) => {
-    return new Promise<void>((resolve, _reject) => {
+    return new Promise<void>((resolve, reject) => {
         img.src = URL.createObjectURL(f);
+        img.onerror = ev => {
+            URL.revokeObjectURL(img.src);
+            reject(ev)
+        };
         img.onload = _ => {
             URL.revokeObjectURL(img.src);
             resolve();
@@ -10,7 +14,11 @@ export const loadImage = (f: File, img: HTMLImageElement) => {
 
 export const imageDataFromFile = async (f: File) => {
     let image = new Image();
-    await loadImage(f, image);
+    try {
+        await loadImage(f, image);
+    } catch (e) {
+        return undefined;
+    }
 
     let canvas = document.createElement('canvas');
     canvas.width = image.width;
