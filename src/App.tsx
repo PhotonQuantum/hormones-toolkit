@@ -1,5 +1,5 @@
 import {useMemo, useState} from "react";
-import {HormoneEntry} from "./utils/parser";
+import {PartialHormoneEntry} from "./utils/parser";
 import {
     AppBar,
     Box,
@@ -31,7 +31,7 @@ import '@fontsource/roboto/700.css';
 import {ImportOCR} from "./parts/ImportOCR";
 
 export const App = () => {
-    const [result, setResult] = useState<HormoneEntry[]>([]);
+    const [result, setResult] = useState<PartialHormoneEntry[]>([]);
     const [openOCR, setOpenOCR] = useState<boolean>(false);
 
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -60,9 +60,9 @@ export const App = () => {
                         <Dialog open={openOCR} onClose={_ => setOpenOCR(false)} fullWidth={true} maxWidth="sm">
                             <DialogTitle>Import by OCR</DialogTitle>
                             <DialogContent>
-                                <ImportOCR onComplete={(res) => {
+                                <ImportOCR onComplete={({result}) => {
                                     setOpenOCR(false);
-                                    setResult(res);
+                                    setResult(result);
                                 }}/>
                             </DialogContent>
                         </Dialog>
@@ -78,17 +78,16 @@ export const App = () => {
                                     </TableHead>
                                     <TableBody>
                                         {result.map((entry) =>
-                                            <TableRow key={entry.name}>
-                                                <TableCell component="th" scope="row">{entry.name}</TableCell>
+                                            <TableRow key={entry.name.unwrap_or("Unknown")}>
+                                                <TableCell component="th" scope="row">{entry.name.unwrap_or("Unknown")}</TableCell>
                                                 <TableCell align="right">{entry.value.display()}</TableCell>
-                                                <TableCell align="right">{entry.unit.display()}</TableCell>
+                                                <TableCell align="right">{entry.unit.map(item=>item.display()).unwrap_or("Unknown")}</TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
                             </TableContainer>
                         </CollapseFade>
-                        <canvas hidden={true} id="outputCanvas"/>
                     </Stack>
                 </Container>
             </Box>

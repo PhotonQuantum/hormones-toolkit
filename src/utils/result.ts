@@ -2,6 +2,7 @@ export interface Result<T, E> {
     isOk: () => boolean;
     isErr: () => boolean;
     unwrap: () => T;
+    unwrap_or: <U>(v: U) => T|U;
     unwrap_err: () => E;
     map: <T2>(f: ((t: T) => T2)) => Result<T2, E>;
     mapErr: <E2>(f: ((u: E) => E2)) => Result<T, E2>;
@@ -45,6 +46,10 @@ export class Ok<T, E> implements Result<T, E> {
     }
 
     unwrap(): T {
+        return this.value;
+    }
+
+    unwrap_or<U>(_v: U): T|U {
         return this.value;
     }
 
@@ -92,6 +97,10 @@ export class Err<T, E> implements Result<T, E> {
     unwrap(): T {
         // @ts-ignore
         return null;
+    }
+
+    unwrap_or<U>(v: U): T|U {
+        return v;
     }
 
     unwrap_err(): E {

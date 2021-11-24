@@ -3,7 +3,7 @@ import {preprocessor} from "../services/cv";
 import {createWorker, Worker} from "tesseract.js";
 import {Alert, Box, Collapse, LinearProgress, Stack} from "@mui/material";
 import {Uploader} from "../components/Uploader";
-import {HormoneEntry, parseLine} from "../utils/parser";
+import {parseLine, PartialHormoneEntry} from "../utils/parser";
 import {imageDataFromFile} from "../utils/cv";
 
 type ReadyState = {
@@ -48,7 +48,7 @@ const createTesseractWorker = async (logger: ((arg: any) => void)) => {
     return worker;
 }
 
-type ImportOCRProps = { onComplete: (entries: HormoneEntry[]) => any };
+type ImportOCRProps = { onComplete: (arg: { result: PartialHormoneEntry[], image: string }) => any };
 
 export const ImportOCR = forwardRef(({onComplete}: ImportOCRProps, ref) => {
     const initialReadyState: ReadyState = {"opencv": false, "tesseract": false};
@@ -150,7 +150,7 @@ export const ImportOCR = forwardRef(({onComplete}: ImportOCRProps, ref) => {
                 return;
             }
             setProcessing(false);
-            onComplete(output);
+            onComplete({result: output, image: outputCanvas.toDataURL("image/png")});
         })();
         // eslint-disable-next-line
     }, [file, ready]);

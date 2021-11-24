@@ -1,8 +1,8 @@
 import levenshtein from "js-levenshtein";
 import {Err, Ok, Option} from "./result";
-import {alt, exact, map, maybe, Output, Parser, regex, tuple2, tuple3} from "./parsec";
+import {alt, andThen, exact, map, maybe, Output, Parser, regex, tuple2, tuple3} from "./parsec";
 
-type HormoneType = "FSH" | "LH" | "E2" | "P" | "T" | "PRL" | "Unknown";
+type HormoneType = "FSH" | "LH" | "E2" | "P" | "T" | "PRL";
 type MatterUnit = "IU" | "g" | "mol";
 type VolumeUnit = "L";
 type UnitModifier = "m" | "n" | "p" | "d" | "";
@@ -113,6 +113,22 @@ export class HormoneEntry implements Display {
     }
 }
 
+export class PartialHormoneEntry implements Display {
+    name: Option<HormoneType>;
+    value: HormoneValue;
+    unit: Option<HormoneUnit>;
+
+    constructor(name: Option<HormoneType>, value: HormoneValue, unit: Option<HormoneUnit>) {
+        this.name = name;
+        this.value = value;
+        this.unit = unit;
+    }
+
+    display(): string {
+        return this.name.unwrap_or("Unknown") + " " + this.value.display() + this.unit.unwrap_or("Unknown");
+    }
+}
+
 // NOTE this parser ignores empty modifier
 // NOTE and what's wrong if I DO NOT return a variant in a enum??
 // @ts-ignore
@@ -141,30 +157,38 @@ const parseVolumeUnit: Parser<VolumeUnit> = input => {
     return new Err(new Output(input, null));
 }
 
+const guessFloat = (value: string): number => {
+    if (value.includes(".")) {
+        return parseFloat(value);
+    } else {
+        return parseInt(value) / 100;
+    }
+}
+
 const parseValueImpl = (value: string): HormoneValue => {
     const valuePrefix = value[0];
     if (valuePrefix === ">" || valuePrefix === "<") {
-        return new HormoneValue(parseFloat(value.substring(1)), valuePrefix);
+        return new HormoneValue(guessFloat(value.substring(1)), valuePrefix);
     }
-    return new HormoneValue(parseFloat(value));
+    return new HormoneValue(guessFloat(value));
 }
 
-const parseNameImpl = (potentialName: string): HormoneType => {
+const parseNameImpl = (potentialName: string): Option<HormoneType> => {
     for (const [ty, proj] of Array.from(HormoneTypeProj)) {
         for (const candidate of proj.accepted_names) {
             if (levenshtein(potentialName, candidate) <= proj.max_dist) {
-                return ty;
+                return new Ok(ty);
             }
         }
     }
-    return "Unknown";
+    return new Err(null);
 }
 
 const reName = /^[睾酮孕雌二醇促卵泡刺激生成素黄体垂泌乳]+/;
-const reValue = /[><]?[\d]+.?[\d]*/;
+const reValue = /[><]?[\d]+\.?[\d]*/;
 const reNotUnit = /^[^pnmolgIUdL]*/;
 
-const parseName = map(regex(reName), parseNameImpl);
+const parseName = andThen(regex(reName), parseNameImpl);
 const parseValue = map(regex(reValue), parseValueImpl);
 const parseConcreteVolumeUnit = map(tuple2(maybe(parseModifier), parseVolumeUnit),
     ([mod, unit]): ConcreteVolumeUnit => {
@@ -188,12 +212,17 @@ const parseUnit = map(
     ]),
     ([matter, _, volume]) =>
         new HormoneUnit(matter, volume));
-const parser = map(tuple3(parseName, parseValue, tuple2(regex(reNotUnit), parseUnit)),
-    ([name, value, [_, unit]]) =>
-        new HormoneEntry(name, value, unit)
+const parser = andThen(tuple3(maybe(parseName), parseValue, tuple2(regex(reNotUnit), maybe(parseUnit))),
+    ([name, value, [_, unit]]) => {
+        if (name.isOk() || unit.isOk()) {
+            return new Ok(new PartialHormoneEntry(name, value, unit)) as Option<PartialHormoneEntry>;
+        } else {
+            return new Err(null) as Option<PartialHormoneEntry>;
+        }
+    }
 );
 
-export const parseLine = (line: string): Option<HormoneEntry> => {
+export const parseLine = (line: string): Option<PartialHormoneEntry> => {
     return parser(line)
         .map(res => res.value)
         .mapErr(_ => null);
